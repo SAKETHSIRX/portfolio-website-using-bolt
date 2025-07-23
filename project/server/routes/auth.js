@@ -60,4 +60,39 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Development endpoint to view all users (remove in production)
+router.get('/admin/users', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const result = await db.query(`
+      SELECT 
+        id, 
+        name, 
+        email, 
+        created_at, 
+        updated_at, 
+        is_active, 
+        last_login 
+      FROM users 
+      ORDER BY created_at DESC
+    `);
+    
+    res.json({
+      success: true,
+      message: 'Users retrieved successfully',
+      data: {
+        users: result.rows,
+        total: result.rows.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+      error: error.message
+    });
+  }
+});
+
 export default router;
