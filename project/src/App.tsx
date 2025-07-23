@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import { 
   Menu, 
   X, 
@@ -43,9 +45,19 @@ import { ExpandableTabs } from '@/components/ui/expandable-tabs';
 import { Footer } from '@/components/ui/footer';
 
 function App() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,7 +91,22 @@ function App() {
   };
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
+
+  const handleAuthNavigation = () => {
+    navigate('/auth');
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   // Navigation tabs configuration with updated names - removed separators
@@ -142,14 +169,14 @@ function App() {
             <div className={`text-2xl font-bold ${
               isDarkMode ? "text-white" : "text-black"
             }`}>
-              SakethSirX
+              sakethsirx
             </div>
             
             {/* Desktop Navigation - ExpandableTabs - Centered */}
             <div className="hidden md:flex justify-center flex-1 mx-8">
               <ExpandableTabs 
                 tabs={navigationTabs}
-                activeColor={isDarkMode ? "text-blue-400" : "text-blue-600"}
+                activeColor={isDarkMode ? "text-black-400" : "text-white-600"}
                 onChange={handleTabChange}
                 activeTabIndex={getActiveTabIndex()}
                 isDarkMode={isDarkMode}
@@ -179,14 +206,35 @@ function App() {
                 )}
               </button>
               
-              {/* Sign In / Sign Up Button */}
-              <button className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
-                isDarkMode 
-                  ? "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30" 
-                  : "bg-black/10 hover:bg-black/20 text-black border-black/20 hover:border-black/30"
-              }`}>
-                Sign In / Sign Up
-              </button>
+              {/* Auth Button */}
+              {isAuthenticated && user ? (
+                <div className="flex items-center gap-3">
+                  <div className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Welcome, {user.name}
+                  </div>
+                  <button 
+                    onClick={handleSignOut}
+                    className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
+                      isDarkMode 
+                        ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 hover:border-red-500/30" 
+                        : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300"
+                    }`}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleAuthNavigation}
+                  className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
+                    isDarkMode 
+                      ? "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30" 
+                      : "bg-black/10 hover:bg-black/20 text-black border-black/20 hover:border-black/30"
+                  }`}
+                >
+                  Sign In / Sign Up →
+                </button>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -237,15 +285,36 @@ function App() {
                 </button>
               </div>
               
-              {/* Mobile Sign In Button */}
+              {/* Mobile Auth Section */}
               <div>
-                <button className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
-                  isDarkMode 
-                    ? "bg-white/10 hover:bg-white/20 text-white border-white/20" 
-                    : "bg-black/10 hover:bg-black/20 text-black border-black/20"
-                }`}>
-                  Sign In / Sign Up
-                </button>
+                {isAuthenticated && user ? (
+                  <div className="space-y-3">
+                    <div className={`text-center py-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      Welcome, {user.name}
+                    </div>
+                    <button 
+                      onClick={handleSignOut}
+                      className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
+                        isDarkMode 
+                          ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20" 
+                          : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                      }`}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={handleAuthNavigation}
+                    className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-300 border backdrop-blur-sm ${
+                      isDarkMode 
+                        ? "bg-white/10 hover:bg-white/20 text-white border-white/20" 
+                        : "bg-black/10 hover:bg-black/20 text-black border-black/20"
+                    }`}
+                  >
+                    Sign In / Sign Up →
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -253,17 +322,7 @@ function App() {
       </nav>
 
       {/* Welcome Badge - Fixed position below navigation */}
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 mt-6">
-        <div className={`inline-flex items-center gap-2 border rounded-full px-6 py-2 backdrop-blur-sm hover:bg-opacity-80 transition-colors duration-300 ${
-          isDarkMode 
-            ? "bg-gray-900/80 border-gray-700/50 text-white" 
-            : "bg-gray-100/80 border-gray-300/50 text-black"
-        }`}>
-          <Star size={16} className={isDarkMode ? "text-white" : "text-black"} />
-          <span className="text-sm font-medium">Welcome, stranger no more — your story now lives here too</span>
-        </div>
-      </div>
-
+      
       {/* Hero Section */}
       <section id="home" className={`min-h-screen flex items-center justify-center relative overflow-hidden antialiased ${
         isDarkMode ? "bg-black" : "bg-white"
@@ -575,7 +634,7 @@ function App() {
             {/* Social Media Icons */}
             <div className="flex justify-center items-center gap-8">
               <a 
-                href="#" 
+                href="https://www.instagram.com/sakethsirx_ae" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -588,7 +647,7 @@ function App() {
               </a>
               
               <a 
-                href="#" 
+                href="https://www.youtube.com/@sakethsirx" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -601,7 +660,7 @@ function App() {
               </a>
               
               <a 
-                href="#" 
+                href="https://x.com/sakethsirx" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -614,7 +673,7 @@ function App() {
               </a>
               
               <a 
-                href="#" 
+                href="https://www.facebook.com/sakethsirx" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -627,7 +686,7 @@ function App() {
               </a>
               
               <a 
-                href="#" 
+                href="https://www.linkedin.com/in/saketh-ram-gundrasam-7906572bb" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -640,7 +699,7 @@ function App() {
               </a>
               
               <a 
-                href="#" 
+                href="https://github.com/SAKETHSIRX" target='_blank' rel="noopener noreferrer"
                 className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors duration-300 group ${
                   isDarkMode 
                     ? "bg-gray-800 hover:bg-gray-700" 
@@ -1007,7 +1066,7 @@ function App() {
               <div className="mb-8">
                 <span className={`text-4xl font-bold ${
                   isDarkMode ? "text-white" : "text-black"
-                }`}>₹7,500</span>
+                }`}>₹99</span>
                 <span className={`ml-2 ${
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}>/ project</span>
@@ -1050,10 +1109,17 @@ function App() {
               </ul>
 
               <div className="text-center">
-                <span className={`text-lg font-semibold ${
-                  isDarkMode ? "text-white" : "text-black"
-                }`}>Order Now →</span>
-              </div>
+  <button
+    className={`text-lg font-semibold px-4 py-2 rounded-md transition-colors duration-300 ${
+      isDarkMode
+        ? "bg-white text-black hover:bg-gray-300"
+        : "bg-black text-white hover:bg-gray-800"
+    }`}
+  >
+    Order Now →
+  </button>
+</div>
+
             </div>
 
             {/* Full-Length Video - Most Popular */}
@@ -1088,7 +1154,7 @@ function App() {
               <div className="mb-8">
                 <span className={`text-4xl font-bold ${
                   isDarkMode ? "text-white" : "text-black"
-                }`}>₹45,000</span>
+                }`}>₹499</span>
                 <span className={`ml-2 ${
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}>/ video</span>
@@ -1131,10 +1197,17 @@ function App() {
               </ul>
 
               <div className="text-center">
-                <span className={`text-lg font-semibold ${
-                  isDarkMode ? "text-white" : "text-black"
-                }`}>Order Now →</span>
-              </div>
+  <button
+    className={`text-lg font-semibold px-4 py-2 rounded-md transition-colors duration-300 ${
+      isDarkMode
+        ? "bg-white text-black hover:bg-gray-300"
+        : "bg-black text-white hover:bg-gray-800"
+    }`}
+  >
+    Order Now →
+  </button>
+</div>
+
             </div>
 
             {/* Combo Pack */}
@@ -1159,7 +1232,7 @@ function App() {
               <div className="mb-8">
                 <span className={`text-4xl font-bold ${
                   isDarkMode ? "text-white" : "text-black"
-                }`}>₹60,000</span>
+                }`}>₹549</span>
                 <span className={`ml-2 ${
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}>/ bundle</span>
@@ -1213,10 +1286,17 @@ function App() {
               </ul>
 
               <div className="text-center">
-                <span className={`text-lg font-semibold ${
-                  isDarkMode ? "text-white" : "text-black"
-                }`}>Get the Bundle →</span>
-              </div>
+  <button
+    className={`text-lg font-semibold px-4 py-2 rounded-md transition-colors duration-300 ${
+      isDarkMode
+        ? "bg-white text-black hover:bg-gray-300"
+        : "bg-black text-white hover:bg-gray-800"
+    }`}
+  >
+    Get the Bundle →
+  </button>
+</div>
+
             </div>
           </div>
 
@@ -1284,7 +1364,7 @@ function App() {
                       <h4 className={`font-semibold ${
                         isDarkMode ? "text-white" : "text-black"
                       }`}>Email</h4>
-                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>hello@sakethsirx.dev</p>
+                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>sakethsirx@gmail.com</p>
                     </div>
                   </div>
 
@@ -1298,7 +1378,7 @@ function App() {
                       <h4 className={`font-semibold ${
                         isDarkMode ? "text-white" : "text-black"
                       }`}>Phone</h4>
-                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>+1 (555) 123-4567</p>
+                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>+91 9666964154</p>
                     </div>
                   </div>
 
@@ -1312,7 +1392,7 @@ function App() {
                       <h4 className={`font-semibold ${
                         isDarkMode ? "text-white" : "text-black"
                       }`}>Location</h4>
-                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>San Francisco, CA</p>
+                      <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Tirupathi, Ap</p>
                     </div>
                   </div>
                 </div>
@@ -1350,6 +1430,7 @@ function App() {
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}>
                   I'm currently available for new projects and collaborations. Typical response time is within 24 hours.
+                  
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
@@ -1377,7 +1458,7 @@ function App() {
                     <input
                       type="text"
                       id="firstName"
-                      placeholder="John"
+                      placeholder="saketh"
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         isDarkMode 
                           ? "bg-gray-800 border-gray-700 text-white placeholder-gray-400" 
@@ -1392,7 +1473,7 @@ function App() {
                     <input
                       type="text"
                       id="lastName"
-                      placeholder="Doe"
+                      placeholder="sirx"
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         isDarkMode 
                           ? "bg-gray-800 border-gray-700 text-white placeholder-gray-400" 
@@ -1409,7 +1490,7 @@ function App() {
                   <input
                     type="email"
                     id="email"
-                    placeholder="john@example.com"
+                    placeholder="example@gmail.com"
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       isDarkMode 
                         ? "bg-gray-800 border-gray-700 text-white placeholder-gray-400" 
